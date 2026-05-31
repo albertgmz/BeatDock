@@ -2,6 +2,8 @@
 
 A Discord music bot powered by Lavalink. Simple to deploy, easy to use.
 
+[![Add to Discord](https://img.shields.io/badge/Add%20to%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/oauth2/authorize?client_id=1388436020521074759&permissions=3237888&scope=bot%20applications.commands)
+
 [![License](https://img.shields.io/github/license/lazaroagomez/BeatDock)](LICENSE)
 [![Version](https://img.shields.io/github/v/release/lazaroagomez/BeatDock?label=version)](https://github.com/lazaroagomez/BeatDock/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org/)
