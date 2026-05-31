@@ -16,7 +16,9 @@ pnpm-debug.log*
 .gitattributes
 
 # Documentation
-README.md
+*.md
+*.MD
+!README.md
 LICENSE
 CHANGELOG.md
 docs/
@@ -39,6 +41,7 @@ compose*.yml
 Thumbs.db
 *.swp
 *.swo
+*.local
 
 # Test files
 test/
@@ -49,4 +52,4 @@ coverage/
 # Build files
 dist/
 build/
-*.log 
+*.log

@@ -1,6 +1,7 @@
 {
   "NOT_IN_VOICE": "Devi essere in un canale vocale per usare questo comando.",
   "NO_RESULTS": "Nessun risultato trovato per la tua ricerca.",
+  "QUERY_NOT_ALLOWED": "Questo URL o questa ricerca non è consentita per la riproduzione.",
   "NO_PERMISSION": "Non hai il permesso di usare questo bot.",
   "SONG_ADDED": "Aggiunto **{0}** alla coda.",
   "SONG_ADDED_NEXT": "Aggiunto **{0}** come prossimo brano.",

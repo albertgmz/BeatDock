@@ -3,26 +3,7 @@
 // Tier 2: Smart search rotation via YouTube Music
 // Tier 3: Relaxed dedup last resort
 
-function normalizeString(str) {
-    return str
-        .toLowerCase()
-        .replace(/\(official\s*(music\s*)?video\)/gi, '')
-        .replace(/\((lyrics?|audio|official\s*audio|visualizer|hd|hq)\)/gi, '')
-        .replace(/\[.*?\]/g, '')
-        .replace(/\s*-\s*topic$/gi, '')
-        .replace(/vevo$/gi, '')
-        .replace(/[^\w\s]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-}
-
-function cleanAuthor(author) {
-    return author
-        .replace(/vevo$/i, '')
-        .replace(/\s*-\s*topic$/i, '')
-        .replace(/official$/i, '')
-        .trim();
-}
+const { cleanAuthor, normalizeString } = require('./trackText');
 
 function getRecentIdentifiers(player) {
     const ids = new Set();

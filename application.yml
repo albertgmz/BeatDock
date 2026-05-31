@@ -48,7 +48,7 @@ lavalink:
       bandcamp: true
       twitch: true
       vimeo: true
-      http: true
+      http: false
       local: false
     bufferDurationMs: 200
     frameBufferDurationMs: 1000
@@ -56,13 +56,12 @@ lavalink:
     playerUpdateInterval: 2
     trackStuckThresholdMs: 5000
     useSeekGhosting: true
-    youtubeSearchEnabled: true
     ratelimit:
       ipBlocks: []
       excludedIps: []
       strategy: "RotateOnBan"
       searchTriggersFail: true
-      retryLimit: -1
+      retryLimit: 5
     filters:
       volume: true
       equalizer: true

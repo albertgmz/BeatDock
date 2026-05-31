@@ -34,7 +34,7 @@ A Discord music bot powered by Lavalink. Simple to deploy, easy to use.
 - Autoplay mode for continuous music playback
 - Queue management with shuffle, loop, and play-next
 - Interactive search with track selection
-- Multi-language support (English, Spanish, Turkish, Italian, Brazilian Portuguese)
+- Deploy-time language selection (English, Spanish, Turkish, Italian, Brazilian Portuguese)
 - Role-based access control
 - Runs entirely in Docker, no host dependencies
 - Works without a self-hosted Lavalink server (automatic public server fallback)
@@ -86,14 +86,14 @@ services:
     networks:
       - beatdock-network
     volumes:
-      - ./application.yml:/opt/Lavalink/application.yml
+      - ./application.yml:/opt/Lavalink/application.yml:ro
     environment:
       - LAVALINK_PASSWORD=${LAVALINK_PASSWORD:-youshallnotpass}
       - SPOTIFY_ENABLED=${SPOTIFY_ENABLED:-false}
       - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID:-}
       - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET:-}
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/2333'"]
+      test: ["CMD", "/bin/bash", "-c", "echo > /dev/tcp/localhost/2333"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -134,7 +134,7 @@ lavalink:
       bandcamp: true
       twitch: true
       vimeo: true
-      http: true
+      http: false
       local: false
     bufferDurationMs: 200
     frameBufferDurationMs: 1000
@@ -142,7 +142,8 @@ lavalink:
     playerUpdateInterval: 2
     trackStuckThresholdMs: 5000
     useSeekGhosting: true
-    youtubeSearchEnabled: true
+    ratelimit:
+      retryLimit: 5
 
 logging:
   level:
@@ -175,7 +176,7 @@ docker compose up -d
 
 ### No Self-Hosted Lavalink Required
 
-BeatDock can run **without a self-hosted Lavalink server**. If `LAVALINK_HOST`, `LAVALINK_PORT`, and `LAVALINK_PASSWORD` are not set, the bot automatically fetches free public Lavalink v4 servers and connects to one. If a public server goes down, it rotates to the next available node.
+BeatDock can run **without a self-hosted Lavalink server**. If `LAVALINK_HOST`, `LAVALINK_PORT`, and `LAVALINK_PASSWORD` are not set, the bot automatically fetches free public Lavalink v4 servers and connects to one. User search queries and track requests are sent to the selected public node. Set `PUBLIC_NODE_HOST_ALLOWLIST` if you only trust specific public Lavalink hosts.
 
 To use public servers, simply comment out the Lavalink variables in your `.env`:
 
@@ -217,12 +218,13 @@ All configuration is done through the `.env` file. Only `TOKEN` is required.
 | `SPOTIFY_ENABLED` | `false` | Enable Spotify search support |
 | `SPOTIFY_CLIENT_ID` | - | Spotify app client ID |
 | `SPOTIFY_CLIENT_SECRET` | - | Spotify app client secret |
-| `DEFAULT_LANGUAGE` | `en` | Bot language (`en`, `es`, `tr`, `it`, `pt-BR`) |
+| `DEFAULT_LANGUAGE` | `en` | Global bot language for this deployment (`en`, `es`, `tr`, `it`, `pt-BR`) |
 | `DEFAULT_VOLUME` | `80` | Default playback volume (0-100) |
 | `AUTOPLAY_DEFAULT` | `false` | Enable autoplay by default when music starts |
 | `ALLOWED_ROLES` | - | Comma-separated role IDs to restrict access |
 | `DEFAULT_SEARCH_PLATFORM` | `ytmsearch` | Default search platform for user queries | 
 | `LAVALINK_PASSWORD` | `youshallnotpass` | Lavalink server password |
+| `PUBLIC_NODE_HOST_ALLOWLIST` | - | Optional comma-separated host or `*.domain` allowlist for public Lavalink fallback |
 | `QUEUE_EMPTY_DESTROY_MS` | `30000` | Disconnect after queue empties (ms) |
 | `EMPTY_CHANNEL_DESTROY_MS` | `60000` | Disconnect from empty channel (ms) |
 

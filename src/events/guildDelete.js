@@ -1,6 +1,7 @@
 const { Events } = require('discord.js');
 const searchSessions = require('../utils/searchSessions');
 const { emptyChannelTimeouts } = require('./voiceStateUpdate');
+const { clearGuildLifecycleTimers } = require('../utils/playerLifecycle');
 
 module.exports = {
     name: Events.GuildDelete,
@@ -10,6 +11,7 @@ module.exports = {
 
         // Clean up Lavalink player and controller message
         const player = client.lavalink.getPlayer(guildId);
+        clearGuildLifecycleTimers(guildId);
         if (player) player.destroy();
         client.playerController.deletePlayer(guildId);
 

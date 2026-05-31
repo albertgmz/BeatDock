@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
+const { schedulePlayerUpdate } = require('../utils/playerLifecycle');
 const logger = require('../utils/logger');
 
 module.exports = {
@@ -23,7 +24,7 @@ module.exports = {
             player.setRepeatMode('off');
         }
 
-        setTimeout(() => client.playerController.updatePlayer(guildId), 100);
+        schedulePlayerUpdate(client, guildId, 100);
 
         return interaction.reply({
             content: client.t(newState ? 'AUTOPLAY_ENABLED' : 'AUTOPLAY_DISABLED'),

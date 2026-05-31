@@ -4,6 +4,7 @@ const { handleSearchNavigation } = require('../interactions/searchNavigation');
 const { handleFilterNavigation } = require('../interactions/filterNavigation');
 const { requirePlayer, requireSameVoice } = require('../utils/interactionHelpers');
 const { playPrevious, shuffleQueue, clearQueue, jumpToTrack, createPaginatedQueueResponse } = require('../utils/PlayerActions');
+const { clearGuildLifecycleTimers, schedulePlayerUpdate } = require('../utils/playerLifecycle');
 const logger = require('../utils/logger');
 
 async function handlePlayerInteraction(interaction, action) {
@@ -52,6 +53,7 @@ async function handlePlayerInteraction(interaction, action) {
         }
         case 'stop': {
             client.autoplayEnabled.delete(interaction.guild.id);
+            clearGuildLifecycleTimers(interaction.guild.id);
             await player.destroy();
             await interaction.reply({ content: client.languageManager.get(lang, 'STOPPED_PLAYBACK'), flags: MessageFlags.Ephemeral });
             break;
@@ -107,7 +109,7 @@ async function handlePlayerInteraction(interaction, action) {
     }
 
     if (action !== 'stop') {
-        setTimeout(() => client.playerController.updatePlayer(interaction.guild.id).catch(() => {}), 500);
+        schedulePlayerUpdate(client, interaction.guild.id, 500);
     }
 }
 
@@ -168,7 +170,7 @@ async function handleQueueInteraction(interaction, action, args) {
                 flags: MessageFlags.Ephemeral
             });
 
-            setTimeout(() => client.playerController.updatePlayer(interaction.guild.id).catch(() => {}), 500);
+            schedulePlayerUpdate(client, interaction.guild.id, 500);
             break;
         }
     }
@@ -281,4 +283,4 @@ module.exports = {
             await handleSelectMenuInteraction(interaction);
         }
     },
-}; 
+};

@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
+const { schedulePlayerUpdate } = require('../utils/playerLifecycle');
 const logger = require('../utils/logger');
 
 module.exports = {
@@ -24,7 +25,7 @@ module.exports = {
         // Cycle through loop modes: off -> track -> queue -> off
         let newMode;
         let modeMessage;
-        
+
         switch (player.repeatMode) {
             case 'off':
                 newMode = 'track';
@@ -47,10 +48,8 @@ module.exports = {
         player.setRepeatMode(newMode);
 
         // Update the player display
-        setTimeout(() => {
-            client.playerController.updatePlayer(interaction.guild.id);
-        }, 100);
+        schedulePlayerUpdate(client, interaction.guild.id, 100);
 
         return interaction.reply({ content: modeMessage, flags: MessageFlags.Ephemeral });
     },
-}; 
+};

@@ -2,6 +2,7 @@ const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const searchSessions = require('../utils/searchSessions');
 const { isLavalinkAvailable, handleLavalinkError } = require('../utils/interactionHelpers');
 const { createSearchEmbed, createSearchComponents } = require('../utils/embeds');
+const { validatePlaybackQuery } = require('../utils/queryGuard');
 const { getValidVolume } = require('../utils/volumeValidator');
 const logger = require('../utils/logger');
 
@@ -57,6 +58,14 @@ module.exports = {
             if (query.length > 200) {
                 return await interaction.reply({
                     content: client.languageManager.get(lang, 'SEARCH_QUERY_TOO_LONG'),
+                    flags: MessageFlags.Ephemeral
+                });
+            }
+
+            const querySafety = await validatePlaybackQuery(query);
+            if (!querySafety.allowed) {
+                return await interaction.reply({
+                    content: client.languageManager.get(lang, 'QUERY_NOT_ALLOWED'),
                     flags: MessageFlags.Ephemeral
                 });
             }

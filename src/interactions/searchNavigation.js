@@ -3,6 +3,7 @@ const searchSessions = require('../utils/searchSessions');
 const { isLavalinkAvailable } = require('../utils/interactionHelpers');
 const { createSearchEmbed, createSearchComponents } = require('../utils/embeds');
 const { getValidVolume } = require('../utils/volumeValidator');
+const { clearGuildLifecycleTimers, schedulePlayerUpdate } = require('../utils/playerLifecycle');
 const logger = require('../utils/logger');
 
 async function handleSearchNavigation(interaction) {
@@ -106,7 +107,7 @@ async function handleSearchNavigation(interaction) {
                         // Send or update the player controller
                         const existingMessageId = client.playerController.playerMessages.get(guild.id);
                         if (existingMessageId) {
-                            setTimeout(() => client.playerController.updatePlayer(guild.id).catch(() => {}), 100);
+                            schedulePlayerUpdate(client, guild.id, 100);
                         } else {
                             // Get the text channel to send the player UI
                             const textChannel = await client.channels.fetch(session.textChannelId).catch(() => null);
@@ -134,6 +135,7 @@ async function handleSearchNavigation(interaction) {
                 const existingPlayer = client.lavalink.getPlayer(guild.id);
                 if (existingPlayer && !existingPlayer.connected && !existingPlayer.playing) {
                     client.autoplayEnabled.delete(guild.id);
+                    clearGuildLifecycleTimers(guild.id);
                     existingPlayer.destroy();
                 }
 

@@ -1,6 +1,12 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const { formatDuration } = require('./embeds');
+const { truncateText } = require('./trackSelectMenu');
 const logger = require('./logger');
+
+const EMBED_TITLE_LIMIT = 256;
+const EMBED_DESCRIPTION_LIMIT = 4096;
+const EMBED_FIELD_VALUE_LIMIT = 1024;
+const EMBED_FOOTER_LIMIT = 2048;
 
 class PlayerController {
     constructor(client) {
@@ -10,13 +16,23 @@ class PlayerController {
 
     createPlayerEmbed(player, track) {
         const lang = this.client.defaultLanguage;
+        const title = truncateText(track.info?.title || 'Unknown', EMBED_TITLE_LIMIT);
+        const uri = typeof track.info?.uri === 'string' && track.info.uri.length <= 2048
+            ? track.info.uri
+            : null;
+        const trackLabel = uri ? `[${title}](${uri})` : title;
+        const nowPlaying = this.client.languageManager.get(lang, 'PLAYER_NOW_PLAYING');
+        const description = truncateText(`**${nowPlaying}:**\n${trackLabel}`, EMBED_DESCRIPTION_LIMIT);
+        const artist = truncateText(track.info?.author || 'Unknown', EMBED_FIELD_VALUE_LIMIT);
+        const volumeFooter = truncateText(this.client.languageManager.get(lang, 'PLAYER_VOLUME', player.volume), EMBED_FOOTER_LIMIT);
+
         const embed = new EmbedBuilder()
             .setColor(0x0099FF)
-            .setTitle(this.client.languageManager.get(lang, 'PLAYER_TITLE'))
-            .setDescription(`**${this.client.languageManager.get(lang, 'PLAYER_NOW_PLAYING')}:**\n[${track.info?.title || 'Unknown'}](${track.info?.uri || '#'})`)
+            .setTitle(truncateText(this.client.languageManager.get(lang, 'PLAYER_TITLE'), EMBED_TITLE_LIMIT))
+            .setDescription(description)
             .setThumbnail(track.info?.artworkUrl || null)
             .addFields(
-                { name: this.client.languageManager.get(lang, 'PLAYER_ARTIST'), value: track.info?.author || 'Unknown', inline: true },
+                { name: this.client.languageManager.get(lang, 'PLAYER_ARTIST'), value: artist, inline: true },
                 { name: this.client.languageManager.get(lang, 'PLAYER_DURATION'), value: formatDuration(track.info?.duration || 0), inline: true },
                 { name: this.client.languageManager.get(lang, 'PLAYER_QUEUE_COUNT'), value: this.client.languageManager.get(lang, 'PLAYER_SONGS_COUNT', player.queue.tracks.length), inline: true },
                 ...(track.userData?.autoplay
@@ -25,7 +41,7 @@ class PlayerController {
                         ? [{ name: this.client.languageManager.get(lang, 'PLAYER_REQUESTED_BY'), value: `<@${track.userData.requester.id}>`, inline: true }]
                         : [])
             )
-            .setFooter({ text: this.client.languageManager.get(lang, 'PLAYER_VOLUME', player.volume) })
+            .setFooter({ text: volumeFooter })
             .setTimestamp();
 
         // Add loop status to the embed
@@ -35,15 +51,15 @@ class PlayerController {
                 ? this.client.languageManager.get(lang, 'LOOP_STATUS_TRACK')
                 : this.client.languageManager.get(lang, 'LOOP_STATUS_QUEUE');
             embed.setFooter({
-                text: `${this.client.languageManager.get(lang, 'PLAYER_VOLUME', player.volume)} | ${loopIcon} ${loopText}`
+                text: truncateText(`${volumeFooter} | ${loopIcon} ${loopText}`, EMBED_FOOTER_LIMIT)
             });
         }
 
         // Add autoplay status to the embed
         if (this.client.autoplayEnabled.get(player.guildId)) {
             const autoplayText = this.client.languageManager.get(lang, 'AUTOPLAY_STATUS');
-            const currentFooter = embed.data.footer?.text || this.client.languageManager.get(lang, 'PLAYER_VOLUME', player.volume);
-            embed.setFooter({ text: `${currentFooter} | 📻 ${autoplayText}` });
+            const currentFooter = embed.data.footer?.text || volumeFooter;
+            embed.setFooter({ text: truncateText(`${currentFooter} | 📻 ${autoplayText}`, EMBED_FOOTER_LIMIT) });
         }
 
         return embed;
@@ -52,7 +68,7 @@ class PlayerController {
     createPlayerButtons(player) {
         const isPaused = player.paused;
         const loopIcon = player.repeatMode === 'track' ? '🔂' : player.repeatMode === 'queue' ? '🔁' : '➡️';
-        
+
         const row1 = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
@@ -126,7 +142,7 @@ class PlayerController {
                 || await channel.messages.fetch(playerMessage.messageId);
             const embed = this.createPlayerEmbed(player, player.queue.current);
             const components = this.createPlayerButtons(player);
-            
+
             await message.edit({ embeds: [embed], components });
         } catch (error) {
             logger.error('Error updating player:', error);
@@ -153,4 +169,4 @@ class PlayerController {
 
 }
 
-module.exports = PlayerController; 
+module.exports = PlayerController;

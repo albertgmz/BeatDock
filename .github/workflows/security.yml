@@ -12,36 +12,36 @@ jobs:
   security:
     name: Security Analysis
     runs-on: ubuntu-latest
-    
+
     permissions:
       actions: read
       contents: read
       security-events: write
-      
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v6
-      
+
     - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
+      uses: aquasecurity/trivy-action@v0.35.0
       with:
         scan-type: 'fs'
         scan-ref: '.'
         format: 'sarif'
         output: 'trivy-results.sarif'
-        
+
     - name: Upload Trivy scan results
       uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: 'trivy-results.sarif'
-        
+
     # Build the Docker image locally so the subsequent image scan has an image to analyse
     - name: Build Docker image for scan
       run: docker build -t beatdock:latest .
-        
+
     - name: Docker security scan
-      uses: aquasecurity/trivy-action@master
+      uses: aquasecurity/trivy-action@v0.35.0
       with:
         scan-type: 'image'
         image-ref: 'beatdock:latest'
-        format: 'table' 
+        format: 'table'

@@ -1,3 +1,9 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   bot:
     container_name: beatdock
@@ -11,6 +17,21 @@ services:
     networks:
       - beatdock-network
     env_file: .env
+    restart: unless-stopped
+    mem_limit: 512m
+    pids_limit: 256
+    cpus: "1.0"
+    logging: *default-logging
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "const fs=require('fs');const p=process.env.HEALTHCHECK_HEARTBEAT_PATH||'/tmp/beatdock-alive';try{const s=fs.statSync(p);process.exit(Date.now()-s.mtimeMs<120000?0:1)}catch{process.exit(1)}"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   lavalink:
     container_name: beatdock-lavalink
@@ -18,14 +39,20 @@ services:
     networks:
       - beatdock-network
     volumes:
-      - ./application.yml:/opt/Lavalink/application.yml
+      - ./application.yml:/opt/Lavalink/application.yml:ro
     environment:
       - LAVALINK_PASSWORD=${LAVALINK_PASSWORD:-youshallnotpass}
       - SPOTIFY_ENABLED=${SPOTIFY_ENABLED:-false}
       - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID:-}
       - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET:-}
+      - JAVA_OPTS=-Xmx1g
+    restart: unless-stopped
+    mem_limit: 1.5g
+    pids_limit: 512
+    cpus: "2.0"
+    logging: *default-logging
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/2333'"]
+      test: ["CMD", "/bin/bash", "-c", "echo > /dev/tcp/localhost/2333"]
       interval: 10s
       timeout: 5s
       retries: 5

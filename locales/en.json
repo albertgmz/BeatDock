@@ -1,6 +1,7 @@
 {
     "NOT_IN_VOICE": "You must be in a voice channel to use this command.",
     "NO_RESULTS": "No results found for your query.",
+    "QUERY_NOT_ALLOWED": "That URL or query is not allowed for playback.",
     "NO_PERMISSION": "You don't have permission to use this bot.",
     "SONG_ADDED": "Added **{0}** to the queue.",
     "SONG_ADDED_NEXT": "Added **{0}** to play next.",

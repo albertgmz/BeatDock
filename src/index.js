@@ -1,4 +1,5 @@
 require('dotenv').config();
+const fs = require('fs');
 const { Client, GatewayIntentBits, ActivityType } = require('discord.js');
 const { LavalinkManager } = require('lavalink-client');
 const LanguageManager = require('./LanguageManager');
@@ -7,12 +8,23 @@ const LavalinkConnectionManager = require('./utils/LavalinkConnectionManager');
 const PublicNodeProvider = require('./utils/PublicNodeProvider');
 const searchSessions = require('./utils/searchSessions');
 const { findAutoplayTracks } = require('./utils/autoplay');
+const {
+    clearQueueEndTimeout,
+    setQueueEndTimeout,
+    clearAllQueueEndTimeouts,
+    clearAllPlayerUpdates,
+    clearGuildLifecycleTimers,
+    schedulePlayerUpdate,
+} = require('./utils/playerLifecycle');
 const loadCommands = require('./handlers/commandHandler');
 const registerEvents = require('./handlers/eventHandler');
 const logger = require('./utils/logger');
 
 const AUTOPLAY_TIMEOUT_MS = 5000;
 const TRACK_END_CLEANUP_DELAY_MS = 500;
+const SHUTDOWN_TIMEOUT_MS = 5000;
+const HEALTHCHECK_HEARTBEAT_PATH = process.env.HEALTHCHECK_HEARTBEAT_PATH || '/tmp/beatdock-alive';
+const HEALTHCHECK_HEARTBEAT_INTERVAL_MS = 30000;
 
 function isLocalLavalinkConfigured() {
     const host = process.env.LAVALINK_HOST;
@@ -92,7 +104,21 @@ function createClient() {
     return client;
 }
 
+function writeHealthcheckHeartbeat() {
+    fs.writeFile(HEALTHCHECK_HEARTBEAT_PATH, String(Date.now()), (error) => {
+        if (error) {
+            logger.debug('Failed to write healthcheck heartbeat:', error.message);
+        }
+    });
+}
+
+function startHealthcheckHeartbeat() {
+    writeHealthcheckHeartbeat();
+    return setInterval(writeHealthcheckHeartbeat, HEALTHCHECK_HEARTBEAT_INTERVAL_MS);
+}
+
 function cleanupGuildPlayer(client, guildId) {
+    clearGuildLifecycleTimers(guildId);
     client.playerController.deletePlayer(guildId);
     client.activePlayers.delete(guildId);
     client.autoplayEnabled.delete(guildId);
@@ -153,20 +179,15 @@ async function setupLavalink(client) {
 }
 
 function registerLavalinkEvents(client) {
-    const queueEndTimeouts = new Map();
-
     client.lavalink.on("trackStart", (player, track) => {
-        if (queueEndTimeouts.has(player.guildId)) {
-            clearTimeout(queueEndTimeouts.get(player.guildId));
-            queueEndTimeouts.delete(player.guildId);
-        }
+        clearQueueEndTimeout(player.guildId);
 
         if (!client.autoplayEnabled.has(player.guildId)) {
             const autoplayDefault = process.env.AUTOPLAY_DEFAULT === 'true';
             client.autoplayEnabled.set(player.guildId, autoplayDefault);
         }
 
-        client.playerController.updatePlayer(player.guildId);
+        schedulePlayerUpdate(client, player.guildId, 0);
 
         client.activePlayers.set(player.guildId, {
             title: track.info?.title,
@@ -183,7 +204,7 @@ function registerLavalinkEvents(client) {
 
         setTimeout(() => {
             if (player.queue.current) {
-                client.playerController.updatePlayer(player.guildId);
+                schedulePlayerUpdate(client, player.guildId, 0);
             } else if (!client.autoplayEnabled.get(player.guildId)) {
                 cleanupGuildPlayer(client, player.guildId);
             }
@@ -193,14 +214,11 @@ function registerLavalinkEvents(client) {
     client.lavalink.on("queueEnd", (player) => {
         const guildId = player.guildId;
 
-        if (queueEndTimeouts.has(guildId)) {
-            clearTimeout(queueEndTimeouts.get(guildId));
-            queueEndTimeouts.delete(guildId);
-        }
+        clearQueueEndTimeout(guildId);
 
         if (client.autoplayEnabled.get(guildId)) {
             const timeout = setTimeout(() => {
-                queueEndTimeouts.delete(guildId);
+                clearQueueEndTimeout(guildId);
 
                 const currentPlayer = client.lavalink.getPlayer(guildId);
                 if (currentPlayer?.queue.current || currentPlayer?.playing) return;
@@ -214,7 +232,7 @@ function registerLavalinkEvents(client) {
                 }
                 cleanupGuildPlayer(client, guildId);
             }, AUTOPLAY_TIMEOUT_MS);
-            queueEndTimeouts.set(guildId, timeout);
+            setQueueEndTimeout(guildId, timeout);
             return;
         }
 
@@ -242,23 +260,32 @@ function setupShutdown(client) {
         logger.info(`Received ${signal}, shutting down gracefully...`);
 
         client.lavalinkConnectionManager.destroy();
+        clearAllQueueEndTimeouts();
+        clearAllPlayerUpdates();
 
-        if (client.publicNodeProvider) {
-            client.publicNodeProvider.destroy();
+        if (client.healthcheckHeartbeat) {
+            clearInterval(client.healthcheckHeartbeat);
+            client.healthcheckHeartbeat = null;
         }
+
+        client.publicNodeProvider?.destroy();
 
         searchSessions.destroy();
 
-        // Destroy all players before destroying nodes
-        for (const player of client.lavalink.players.values()) {
-            await player.destroy();
-        }
+        const shutdownWork = (async () => {
+            await Promise.allSettled([...client.lavalink.players.values()].map(player => player.destroy()));
+            await Promise.allSettled([...client.lavalink.nodeManager.nodes.values()].map(node => node.destroy()));
+            await client.destroy();
+        })();
 
-        for (const node of client.lavalink.nodeManager.nodes.values()) {
-            await node.destroy();
-        }
+        const result = await Promise.race([
+            shutdownWork.then(() => 'complete'),
+            new Promise(resolve => setTimeout(() => resolve('timeout'), SHUTDOWN_TIMEOUT_MS)),
+        ]);
 
-        await client.destroy();
+        if (result === 'timeout') {
+            logger.warn(`Graceful shutdown exceeded ${SHUTDOWN_TIMEOUT_MS}ms deadline; exiting`);
+        }
 
         process.exit(0);
     };
@@ -275,6 +302,7 @@ async function bootstrap() {
     registerEvents(client);
     setupShutdown(client);
     await client.login(process.env.TOKEN);
+    client.healthcheckHeartbeat = startHealthcheckHeartbeat();
 }
 
 process.on('unhandledRejection', (error) => {

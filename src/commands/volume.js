@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { requirePlayer } = require('../utils/interactionHelpers');
+const { schedulePlayerUpdate } = require('../utils/playerLifecycle');
 const logger = require('../utils/logger');
 
 module.exports = {
@@ -26,13 +27,11 @@ module.exports = {
         player.setVolume(volume);
 
         // Update the player display
-        setTimeout(() => {
-            client.playerController.updatePlayer(interaction.guild.id);
-        }, 100);
+        schedulePlayerUpdate(client, interaction.guild.id, 100);
 
-        return interaction.reply({ 
+        return interaction.reply({
             content: client.languageManager.get(client.defaultLanguage, 'VOLUME_SET', volume),
             flags: MessageFlags.Ephemeral
         });
     },
-}; 
+};

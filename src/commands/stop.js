@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { requirePlayer } = require('../utils/interactionHelpers');
+const { clearGuildLifecycleTimers } = require('../utils/playerLifecycle');
 const logger = require('../utils/logger');
 
 module.exports = {
@@ -15,10 +16,11 @@ module.exports = {
         logger.cmd(`/stop by ${interaction.user.tag} in #${interaction.channel.name} (Guild: ${interaction.guild.name})`);
 
         client.autoplayEnabled.delete(interaction.guild.id);
+        clearGuildLifecycleTimers(interaction.guild.id);
         await player.destroy();
-        return interaction.reply({ 
+        return interaction.reply({
             content: client.languageManager.get(client.defaultLanguage, 'STOPPED_PLAYBACK'),
             flags: MessageFlags.Ephemeral
         });
     },
-}; 
+};

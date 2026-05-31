@@ -1,66 +1,55 @@
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const { requirePlayer } = require('../utils/interactionHelpers');
+const { cleanArtist, cleanTitle, splitArtistFromTitle } = require('../utils/trackText');
 const { version } = require('../../package.json');
 const logger = require('../utils/logger');
 
-const TITLE_NOISE = /\s*[\(\[](official\s*(video|audio|music\s*video|lyric\s*video|visualizer)|lyric\s*video|lyrics?|audio|video|mv|hd|hq|4k|remaster(ed)?|live|ft\.?.*|feat\.?.*|prod\.?.*|visualizer)[\)\]]\s*/gi;
-const ARTIST_NOISE = /\s*(official\s*(youtube\s*)?channel|official|music|vevo|records?|entertainment)\s*/gi;
-const TOPIC_SUFFIX = /\s*-\s*Topic$/i;
 const MAX_EMBED_LENGTH = 4096;
-
-function splitArtistFromTitle(title, artist) {
-    // YouTube often formats as "Artist - Title" — split and use parts
-    const dashMatch = title.match(/^(.+?)\s*[-–—]\s+(.+)$/);
-    if (dashMatch) {
-        return { title: dashMatch[2], artist: dashMatch[1] };
-    }
-    return { title, artist };
-}
-
-function cleanTitle(title) {
-    return title.replace(TITLE_NOISE, '').trim();
-}
-
-function cleanArtist(artist) {
-    return artist
-        .replace(TOPIC_SUFFIX, '')
-        .replace(ARTIST_NOISE, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-}
+const LYRICS_TIMEOUT_MS = 8000;
 
 async function fetchLyrics(title, artist, durationSec) {
-    const params = new URLSearchParams({
-        track_name: title,
-        artist_name: artist,
-    });
-    if (durationSec) params.set('duration', String(Math.round(durationSec)));
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), LYRICS_TIMEOUT_MS);
 
-    const response = await fetch(`https://lrclib.net/api/get?${params}`, {
-        headers: { 'User-Agent': `BeatDock/${version}` },
-    });
+    try {
+        const params = new URLSearchParams({
+            track_name: title,
+            artist_name: artist,
+        });
+        if (durationSec) params.set('duration', String(Math.round(durationSec)));
 
-    if (response.ok) {
-        const data = await response.json();
-        if (data && (data.plainLyrics || data.syncedLyrics || data.instrumental)) {
-            return data;
+        const response = await fetch(`https://lrclib.net/api/get?${params}`, {
+            headers: { 'User-Agent': `BeatDock/${version}` },
+            signal: controller.signal,
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data && (data.plainLyrics || data.syncedLyrics || data.instrumental)) {
+                return data;
+            }
         }
-    }
 
-    // Fallback: search endpoint
-    const searchResponse = await fetch(
-        `https://lrclib.net/api/search?q=${encodeURIComponent(`${title} ${artist}`)}`,
-        { headers: { 'User-Agent': `BeatDock/${version}` } }
-    );
+        // Fallback: search endpoint
+        const searchResponse = await fetch(
+            `https://lrclib.net/api/search?q=${encodeURIComponent(`${title} ${artist}`)}`,
+            {
+                headers: { 'User-Agent': `BeatDock/${version}` },
+                signal: controller.signal,
+            }
+        );
 
-    if (searchResponse.ok) {
-        const results = await searchResponse.json();
-        if (Array.isArray(results) && results.length > 0) {
-            return results[0];
+        if (searchResponse.ok) {
+            const results = await searchResponse.json();
+            if (Array.isArray(results) && results.length > 0) {
+                return results[0];
+            }
         }
-    }
 
-    return null;
+        return null;
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 module.exports = {

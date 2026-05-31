@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { isLavalinkAvailable, handleLavalinkError } = require('../utils/interactionHelpers');
+const { validatePlaybackQuery } = require('../utils/queryGuard');
 const { getValidVolume } = require('../utils/volumeValidator');
 const logger = require('../utils/logger');
 
@@ -26,6 +27,14 @@ module.exports = {
         try {
             if (!voiceChannel) {
                 return await interaction.reply({ content: client.languageManager.get(lang, 'NOT_IN_VOICE'), flags: MessageFlags.Ephemeral });
+            }
+
+            const querySafety = await validatePlaybackQuery(query);
+            if (!querySafety.allowed) {
+                return await interaction.reply({
+                    content: client.languageManager.get(lang, 'QUERY_NOT_ALLOWED'),
+                    flags: MessageFlags.Ephemeral
+                });
             }
 
             // Check if Lavalink is available

@@ -1,6 +1,7 @@
 {
     "NOT_IN_VOICE": "Bu komutu kullanmak için bir ses kanalında olmalısınız.",
     "NO_RESULTS": "Aradığın müzik için sonuç bulunamadı.",
+    "QUERY_NOT_ALLOWED": "Bu URL veya sorgunun oynatılmasına izin verilmiyor.",
     "NO_PERMISSION": "Bu botu kullanmak için yeterli izniniz yok.",
     "SONG_ADDED": "**{0}** kuyruğa eklendi.",
     "SONG_ADDED_NEXT": "**{0}** sıradaki olarak eklendi.",
@@ -101,4 +102,3 @@
     "FILTER_NONE_ACTIVE": "Aktif filtre yok.",
     "FILTER_SELECT": "Uygulamak veya kaldırmak için bir filtre seçin."
 }
-
