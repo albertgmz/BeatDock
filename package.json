@@ -1,10 +1,11 @@
 {
   "name": "beatdock",
-  "version": "2.8.0",
+  "version": "2.9.0",
   "description": "A modern and efficient Discord music bot with slash commands, multi-language support, and Docker deployment.",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "test": "node scripts/test-autoplay.js",
     "docker:build": "docker build -t beatdock:latest .",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",

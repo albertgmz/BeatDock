@@ -4,6 +4,22 @@ All notable changes to BeatDock are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/). This project uses [Semantic Versioning](https://semver.org/).
 
+## [2.9.0] - 2026-06-07
+
+### Changed
+- Autoplay recommendations now rely solely on YouTube's native radio (RD mix), seeded from
+  recent tracks, replacing the previous custom `ytmsearch:` text-search heuristic
+- Autoplay now queues up to 25 related tracks per refill (configurable via `AUTOPLAY_TARGET_COUNT`)
+
+### Fixed
+- Autoplay no longer repeats the same song: hardened deduplication (within-batch checking,
+  wider history window, and version-variant title matching such as `(Live)` vs `(Official Video)`)
+- Removed the random no-dedup fallback that could re-add recently played tracks
+
+### Added
+- `AUTOPLAY_TARGET_COUNT` environment variable to control how many tracks autoplay queues
+- Light non-music filter to skip reactions, trailers, interviews and live streams in autoplay
+
 ## [2.7.4] - 2026-03-22
 
 ### Added

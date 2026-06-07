@@ -1,14 +1,30 @@
-// Autoplay recommendation engine — 3-tier cascade with 3-layer deduplication.
-// Tier 1: YouTube Mix URL (YouTube's recommendation algorithm)
-// Tier 2: Smart search rotation via YouTube Music
-// Tier 3: Relaxed dedup last resort
+// Autoplay recommendation engine — YouTube's native radio (RD mix) with hardened dedup.
+// Seeds YouTube's server-side radio from the last played track (and recent history when
+// one mix is short), accumulates a deduplicated batch of related tracks, and filters out
+// non-music. No external services or credentials.
 
-const { cleanAuthor, normalizeString } = require('./trackText');
+const { normalizeString } = require('./trackText');
+const logger = require('./logger');
+
+const AUTOPLAY_TARGET = Math.max(1, parseInt(process.env.AUTOPLAY_TARGET_COUNT || '25', 10) || 25);
+const MAX_SEEDS = 3;
+const HISTORY_WINDOW = 50;
+
+// Clearly non-music uploads to skip. Kept deliberately small to avoid false positives.
+// NOTE: "live"/"cover" are intentionally NOT here — they are music; the title normaliser
+// already collapses live/alternate re-uploads of an already-played song during dedup.
+const NON_MUSIC = /\b(reaction|trailer|teaser|interview|podcast|review|tutorial|gameplay|highlights?|behind\s+the\s+scenes|full\s+(?:movie|album|concert))\b/i;
+const TOPIC_AUTHOR = /-\s*topic\s*$/i;
+
+function isYouTubeSource(track) {
+    const source = track?.info?.sourceName;
+    return source === 'youtube' || source === 'youtubemusic';
+}
 
 function getRecentIdentifiers(player) {
     const ids = new Set();
     if (player.queue.current) ids.add(player.queue.current.info.identifier);
-    for (const t of player.queue.previous.slice(-25)) {
+    for (const t of player.queue.previous.slice(-HISTORY_WINDOW)) {
         ids.add(t.info.identifier);
     }
     for (const t of player.queue.tracks) {
@@ -17,19 +33,19 @@ function getRecentIdentifiers(player) {
     return ids;
 }
 
+// 3-layer match: exact id, ISRC (same recording across uploads), normalised title
+// (covers re-uploads / official-video vs audio / lyric videos).
 function isDuplicate(track, recentIds, history) {
-    // Layer 1: Exact identifier match (O(1))
     if (recentIds.has(track.info.identifier)) return true;
 
-    // Layer 2: ISRC match (same recording across uploads)
     if (track.info.isrc) {
         for (const h of history) {
             if (h.info.isrc && h.info.isrc === track.info.isrc) return true;
         }
     }
 
-    // Layer 3: Normalized title match (catches covers, re-uploads, lyric videos)
     const normalized = normalizeString(track.info.title);
+    if (!normalized) return false;
     for (const h of history) {
         const hNorm = normalizeString(h.info.title);
         if (normalized === hNorm) return true;
@@ -37,120 +53,84 @@ function isDuplicate(track, recentIds, history) {
             if (normalized.includes(hNorm) || hNorm.includes(normalized)) return true;
         }
     }
-
     return false;
 }
 
-function filterCandidates(tracks, recentIds, history) {
-    return tracks.filter(t => !isDuplicate(t, recentIds, history));
+function looksLikeNonMusic(track) {
+    if (track.info.isStream) return true;
+    return NON_MUSIC.test(track.info.title || '');
 }
 
-function pickRandom(arr, max = 3) {
-    const index = Math.floor(Math.random() * Math.min(max, arr.length));
-    return arr[index];
+// Songs/audio (Art Tracks, YT Music, ISRC-bearing) are preferred over plain videos so
+// that, when duplicates collapse or the batch overflows, the music-video copy is dropped.
+function isSongLike(track) {
+    const info = track.info;
+    return Boolean(info.isrc) || info.sourceName === 'youtubemusic' || TOPIC_AUTHOR.test(info.author || '');
+}
+
+function buildSeeds(lastPlayedTrack, history) {
+    const seedIds = new Set();
+    const seeds = [];
+    for (const t of [lastPlayedTrack, ...history.slice().reverse()]) {
+        const id = t?.info?.identifier;
+        if (!id || !isYouTubeSource(t) || seedIds.has(id)) continue;
+        seedIds.add(id);
+        seeds.push(t);
+        if (seeds.length >= MAX_SEEDS) break;
+    }
+    return seeds;
+}
+
+async function fetchMix(player, videoId) {
+    try {
+        const mixUrl = `https://www.youtube.com/watch?v=${videoId}&list=RD${videoId}`;
+        const res = await player.search({ query: mixUrl });
+        return res?.tracks || [];
+    } catch {
+        return [];
+    }
 }
 
 /**
- * Finds autoplay tracks using a 3-tier cascade strategy.
- * Returns an array of 0-2 tracks to add to the queue.
+ * Builds an autoplay batch from YouTube's native radio (RD mix), seeded from the last
+ * played track and recent history. Returns up to AUTOPLAY_TARGET unique, deduplicated
+ * tracks, or [] when no usable recommendations are found.
  */
 async function findAutoplayTracks(player, lastPlayedTrack) {
     if (!lastPlayedTrack?.info) return [];
 
-    const recentIds = getRecentIdentifiers(player);
-    recentIds.add(lastPlayedTrack.info.identifier);
-    const history = player.queue.previous.slice(-25);
-    const videoId = lastPlayedTrack.info.identifier;
-    const source = lastPlayedTrack.info.sourceName;
-    const author = lastPlayedTrack.info.author;
-    const title = lastPlayedTrack.info.title;
+    const history = player.queue.previous.slice(-HISTORY_WINDOW);
+    const seen = getRecentIdentifiers(player);
+    seen.add(lastPlayedTrack.info.identifier);
+    const dedupHistory = history.slice();
 
-    // ── TIER 1: YouTube Mix URL (best recommendations) ──
-    if (source === 'youtube' || source === 'youtubemusic') {
-        try {
-            const mixUrl = `https://www.youtube.com/watch?v=${videoId}&list=RD${videoId}`;
-            const res = await player.search({ query: mixUrl });
+    const collected = [];
+    const nonMusic = []; // deduped fallback, used only if everything else is filtered out
+    const seeds = buildSeeds(lastPlayedTrack, history);
 
-            if (res?.tracks?.length) {
-                const candidates = filterCandidates(res.tracks, recentIds, history);
-                if (candidates.length > 0) return candidates.slice(0, 2);
-            }
-        } catch {
-            // Mix URL failed — fall through to Tier 2
+    for (const seed of seeds) {
+        if (collected.length >= AUTOPLAY_TARGET) break;
+
+        const tracks = await fetchMix(player, seed.info.identifier);
+        if (!tracks.length) continue;
+
+        const ordered = [...tracks].sort((a, b) => Number(isSongLike(b)) - Number(isSongLike(a)));
+
+        for (const track of ordered) {
+            if (collected.length >= AUTOPLAY_TARGET) break;
+            if (!track?.info || isDuplicate(track, seen, dedupHistory)) continue;
+
+            seen.add(track.info.identifier);
+            dedupHistory.push(track);
+
+            if (looksLikeNonMusic(track)) nonMusic.push(track);
+            else collected.push(track);
         }
     }
 
-    // ── TIER 2: Smart search rotation via YouTube Music ──
-    if (author) {
-        const artist = cleanAuthor(author);
-        const cleanedTitle = title.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').trim();
-        const partialTitle = cleanedTitle.split(' ').slice(0, 3).join(' ');
-
-        const queryStrategies = [
-            `ytmsearch:${artist}`,
-            `ytmsearch:${artist} mix`,
-            `ytmsearch:${artist} ${partialTitle}`,
-        ];
-
-        // Detect same-artist saturation: if 3+ of last 5 tracks share the same artist,
-        // broaden the query to break out of the artist loop
-        const last5Artists = history.slice(-5).map(t => normalizeString(cleanAuthor(t.info.author)));
-        const artistCount = last5Artists.filter(a => a === normalizeString(artist)).length;
-        if (artistCount >= 3) {
-            queryStrategies.unshift(`ytmsearch:${cleanedTitle} music`);
-        }
-
-        // Add variety from recent history — cross-pollinate artists
-        const recentArtists = [...new Set(
-            history.slice(-10).map(t => cleanAuthor(t.info.author))
-        )].filter(a => a !== artist);
-
-        if (recentArtists.length > 0) {
-            const altArtist = pickRandom(recentArtists);
-            queryStrategies.push(`ytmsearch:${altArtist} ${artist}`);
-        }
-
-        // Shuffle strategies but keep the first (most relevant) in position
-        const [primary, ...rest] = queryStrategies;
-        const shuffledRest = rest.sort(() => Math.random() - 0.5);
-        const orderedStrategies = [primary, ...shuffledRest];
-
-        for (const query of orderedStrategies) {
-            try {
-                const res = await player.search({ query });
-
-                if (res?.tracks?.length) {
-                    const candidates = filterCandidates(res.tracks, recentIds, history);
-                    if (candidates.length > 0) return candidates.slice(0, 2);
-                }
-            } catch {
-                continue;
-            }
-        }
-    }
-
-    // ── TIER 3: Last resort — relaxed dedup to prevent silence ──
-    try {
-        const artist = author ? cleanAuthor(author) : '';
-        const query = artist ? `ytmsearch:${artist}` : `ytmsearch:${normalizeString(title)}`;
-        const res = await player.search({ query });
-
-        if (res?.tracks?.length) {
-            // Only check against last 10 tracks (relaxed)
-            const relaxedIds = new Set(
-                player.queue.previous.slice(-10).map(t => t.info.identifier)
-            );
-            const fallback = res.tracks.find(t => !relaxedIds.has(t.info.identifier));
-            if (fallback) return [fallback];
-
-            // Absolute last resort: pick something random
-            return [res.tracks[Math.floor(Math.random() * res.tracks.length)]];
-        }
-    } catch {
-        // All strategies exhausted — queueEnd event will fire
-    }
-
-    return [];
+    const result = (collected.length ? collected : nonMusic).slice(0, AUTOPLAY_TARGET);
+    logger.debug(`Autoplay: ${result.length} track(s) from ${seeds.length} seed(s)`);
+    return result;
 }
 
 module.exports = { findAutoplayTracks };
