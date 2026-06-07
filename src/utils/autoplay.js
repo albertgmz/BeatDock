@@ -102,7 +102,14 @@ async function findAutoplayTracks(player, lastPlayedTrack) {
     const history = player.queue.previous.slice(-HISTORY_WINDOW);
     const seen = getRecentIdentifiers(player);
     seen.add(lastPlayedTrack.info.identifier);
-    const dedupHistory = history.slice();
+    // ISRC/title dedup baseline — include currently playing, queued, and the just-finished
+    // track so same-song variants with a different identifier are still caught.
+    const dedupHistory = [
+        ...(player.queue.current?.info ? [player.queue.current] : []),
+        ...history.filter((t) => t?.info),
+        ...player.queue.tracks.filter((t) => t?.info),
+        lastPlayedTrack,
+    ];
 
     const collected = [];
     const nonMusic = []; // deduped fallback, used only if everything else is filtered out

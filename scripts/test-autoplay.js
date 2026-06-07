@@ -3,6 +3,8 @@
 
 const assert = require('node:assert/strict');
 const { normalizeString } = require('../src/utils/trackText');
+// Pin the target before loading autoplay — it reads AUTOPLAY_TARGET_COUNT at require time.
+process.env.AUTOPLAY_TARGET_COUNT = '25';
 const { findAutoplayTracks } = require('../src/utils/autoplay');
 
 let passed = 0;
