@@ -7,6 +7,9 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "09:00"
+    # Hold version updates for ~1 month after release so they bake before adoption
+    cooldown:
+      default-days: 30
     open-pull-requests-limit: 5
     commit-message:
       prefix: "deps"
@@ -22,6 +25,9 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "10:00"
+    # Hold version updates for ~1 month after release so they bake before adoption
+    cooldown:
+      default-days: 30
     open-pull-requests-limit: 3
     commit-message:
       prefix: "docker"
@@ -40,6 +46,9 @@ updates:
       interval: "weekly"
       day: "monday"
       time: "11:00"
+    # Hold version updates for ~1 month after release so they bake before adoption
+    cooldown:
+      default-days: 30
     open-pull-requests-limit: 2
     commit-message:
       prefix: "ci"
