@@ -2,14 +2,14 @@
 
 A Discord music bot powered by Lavalink. Simple to deploy, easy to use.
 
-[![License](https://img.shields.io/github/license/lazaroagomez/BeatDock)](LICENSE)
-[![Version](https://img.shields.io/github/v/release/lazaroagomez/BeatDock?label=version)](https://github.com/lazaroagomez/BeatDock/releases)
+[![License](https://img.shields.io/github/license/albertgmz/BeatDock)](LICENSE)
+[![Version](https://img.shields.io/github/v/release/albertgmz/BeatDock?label=version)](https://github.com/albertgmz/BeatDock/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org/)
-[![Docker](https://img.shields.io/badge/docker-ready-blue)](https://github.com/lazaroagomez/BeatDock/pkgs/container/beatdock)
-[![Last Commit](https://img.shields.io/github/last-commit/lazaroagomez/BeatDock)](https://github.com/lazaroagomez/BeatDock/commits/main)
-[![Issues](https://img.shields.io/github/issues/lazaroagomez/BeatDock)](https://github.com/lazaroagomez/BeatDock/issues)
-[![CI](https://img.shields.io/github/actions/workflow/status/lazaroagomez/BeatDock/ci.yml?label=CI)](https://github.com/lazaroagomez/BeatDock/actions/workflows/ci.yml)
-[![Security](https://img.shields.io/github/actions/workflow/status/lazaroagomez/BeatDock/security.yml?label=security)](https://github.com/lazaroagomez/BeatDock/actions/workflows/security.yml)
+[![Docker](https://img.shields.io/badge/docker-ready-blue)](https://github.com/albertgmz/BeatDock/pkgs/container/beatdock)
+[![Last Commit](https://img.shields.io/github/last-commit/albertgmz/BeatDock)](https://github.com/albertgmz/BeatDock/commits/main)
+[![Issues](https://img.shields.io/github/issues/albertgmz/BeatDock)](https://github.com/albertgmz/BeatDock/issues)
+[![CI](https://img.shields.io/github/actions/workflow/status/albertgmz/BeatDock/ci.yml?label=CI)](https://github.com/albertgmz/BeatDock/actions/workflows/ci.yml)
+[![Security](https://img.shields.io/github/actions/workflow/status/albertgmz/BeatDock/security.yml?label=security)](https://github.com/albertgmz/BeatDock/actions/workflows/security.yml)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-support-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/lazaroagomez)
 
 ---
@@ -70,7 +70,7 @@ TOKEN=your_discord_bot_token
 services:
   bot:
     container_name: beatdock
-    image: ghcr.io/lazaroagomez/beatdock:latest
+    image: ghcr.io/albertgmz/beatdock:latest
     depends_on:
       lavalink:
         condition: service_healthy
@@ -160,7 +160,7 @@ docker compose up -d
 ### Option B: Deploy from Source
 
 ```bash
-git clone https://github.com/lazaroagomez/BeatDock.git
+git clone https://github.com/albertgmz/BeatDock.git
 cd BeatDock
 ```
 
@@ -247,7 +247,7 @@ Raspberry Pi 5 (Debian 13) may use a 16KB memory page size, which is incompatibl
 getconf PAGE_SIZE
 ```
 
-If the result is not `4096`, add `kernel=kernel8.img` under the `[all]` section in `/boot/firmware/config.txt`, then reboot and restart the containers. See [#109](https://github.com/lazaroagomez/BeatDock/issues/109) for details.
+If the result is not `4096`, add `kernel=kernel8.img` under the `[all]` section in `/boot/firmware/config.txt`, then reboot and restart the containers. See [#109](https://github.com/albertgmz/BeatDock/issues/109) for details.
 
 ## Built With
 
@@ -265,8 +265,8 @@ See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for setup instructions and guidel
 
 ## Links
 
-- [Website](https://lazaroagomez.github.io/BeatDock)
-- [Issues](https://github.com/lazaroagomez/BeatDock/issues)
+- [Website](https://albertgmz.github.io/BeatDock)
+- [Issues](https://github.com/albertgmz/BeatDock/issues)
 - [Changelog](CHANGELOG.md)
 
 ## License

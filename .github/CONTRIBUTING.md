@@ -58,4 +58,4 @@ docs/            GitHub Pages website
 
 ## Need help?
 
-Open an [Issue](https://github.com/lazaroagomez/BeatDock/issues), happy to help.
+Open an [Issue](https://github.com/albertgmz/BeatDock/issues), happy to help.
