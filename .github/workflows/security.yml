@@ -20,7 +20,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v6.0.2
 
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@v0.35.0
