@@ -27,12 +27,12 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lazaroagomez/BeatDock.git"
+    "url": "https://github.com/albertgmz/BeatDock.git"
   },
   "bugs": {
-    "url": "https://github.com/lazaroagomez/BeatDock/issues"
+    "url": "https://github.com/albertgmz/BeatDock/issues"
   },
-  "homepage": "https://github.com/lazaroagomez/BeatDock#readme",
+  "homepage": "https://github.com/albertgmz/BeatDock#readme",
   "engines": {
     "node": ">=22.16.0",
     "npm": ">=11.4.2"

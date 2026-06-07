@@ -84,12 +84,12 @@ module.exports = {
                 new ButtonBuilder()
                     .setLabel('GitHub Repository')
                     .setStyle(ButtonStyle.Link)
-                    .setURL('https://github.com/lazaroagomez/BeatDock')
+                    .setURL('https://github.com/albertgmz/BeatDock')
                     .setEmoji('⭐'),
                 new ButtonBuilder()
                     .setLabel('Report an Issue')
                     .setStyle(ButtonStyle.Link)
-                    .setURL('https://github.com/lazaroagomez/BeatDock/issues')
+                    .setURL('https://github.com/albertgmz/BeatDock/issues')
                     .setEmoji('🐛')
             );
 

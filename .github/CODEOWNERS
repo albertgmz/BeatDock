@@ -1,8 +1,8 @@
-# Set @lazaroagomez as the default owner for everything
-* @lazaroagomez
+# Set @albertgmz as the default owner for everything
+* @albertgmz
 
 # Dependency files
-package*.json @lazaroagomez
-Dockerfile @lazaroagomez
-docker-compose.yml @lazaroagomez
-.github/ @lazaroagomez
+package*.json @albertgmz
+Dockerfile @albertgmz
+docker-compose.yml @albertgmz
+.github/ @albertgmz

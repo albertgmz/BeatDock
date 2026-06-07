@@ -35,7 +35,7 @@ module.exports = {
                 new ButtonBuilder()
                     .setLabel('GitHub')
                     .setStyle(ButtonStyle.Link)
-                    .setURL('https://github.com/lazaroagomez/BeatDock')
+                    .setURL('https://github.com/albertgmz/BeatDock')
             );
 
         try {
