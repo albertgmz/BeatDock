@@ -9,6 +9,8 @@ set -u
 BGUTIL_URL="${BGUTIL_URL:-http://bgutil-provider:4416}"
 LAVALINK_URL="${LAVALINK_URL:-http://lavalink:2333}"
 REFRESH_INTERVAL="${POT_REFRESH_INTERVAL:-1800}"
+# Non-numeric interval would make sleep fail after a SUCCESSFUL refresh -> tight mint loop.
+[ "$REFRESH_INTERVAL" -gt 0 ] 2>/dev/null || REFRESH_INTERVAL=1800
 
 if [ -z "${LAVALINK_PASSWORD:-}" ]; then
   echo "[pot-refresher] LAVALINK_PASSWORD is required" >&2
