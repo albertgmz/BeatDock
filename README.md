@@ -204,6 +204,8 @@ Playing arbitrary (non-music) videos and autoplay/RD-mix recommendations require
 
 Music keeps working through the `MUSIC`/`ANDROID_VR` clients even if the refresher is temporarily down. Age-restricted videos may still be unavailable.
 
+> **Note:** this only applies to the **self-hosted** stack. If BeatDock connects to public Lavalink nodes (no `LAVALINK_HOST` set), tokens are managed by each node's operator, so the `bgutil-provider` and `pot-refresher` services are not used and non-music playback depends on the node.
+
 ### Option B: Deploy from Source
 
 ```bash
@@ -224,6 +226,8 @@ docker compose up -d
 ### No Self-Hosted Lavalink Required
 
 BeatDock can run **without a self-hosted Lavalink server**. If `LAVALINK_HOST`, `LAVALINK_PORT`, and `LAVALINK_PASSWORD` are not set, the bot automatically fetches free public Lavalink v4 servers and connects to one. User search queries and track requests are sent to the selected public node. Set `PUBLIC_NODE_HOST_ALLOWLIST` if you only trust specific public Lavalink hosts.
+
+On public nodes the [YouTube poToken auto-refresh](#youtube-potoken-auto-refresh) does not apply: each node manages its own tokens, so whether non-music videos and autoplay mixes play depends on that node's setup.
 
 To use public servers, simply comment out the Lavalink variables in your `.env`:
 

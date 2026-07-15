@@ -57,7 +57,7 @@
         </a>
       </div>
       <div class="hero__badges">
-        <span class="badge">v2.9.0</span>
+        <span class="badge">v2.10.0</span>
         <span class="badge">Apache-2.0</span>
         <span class="badge">Docker Ready</span>
       </div>
@@ -141,6 +141,14 @@
           </div>
           <h3 class="card__title">Public Lavalink Fallback</h3>
           <p class="card__description">No self-hosted server needed. Auto-connects to free public Lavalink nodes.</p>
+        </div>
+
+        <div class="card fade-in">
+          <div class="card__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+          </div>
+          <h3 class="card__title">YouTube Token Auto-Refresh</h3>
+          <p class="card__description">Fresh poTokens pushed to Lavalink automatically, so non-music videos and autoplay keep working. No Google account or API key. Self-hosted stacks only.</p>
         </div>
 
       </div>
@@ -283,6 +291,9 @@ DEFAULT_LANGUAGE=en
 # LAVALINK_PORT=2333
 # LAVALINK_PASSWORD=youshallnotpass
 
+# YouTube poToken refresh cadence in seconds (self-hosted stack only)
+# POT_REFRESH_INTERVAL=1800
+
 # Timeouts
 QUEUE_EMPTY_DESTROY_MS=30000
 EMPTY_CHANNEL_DESTROY_MS=60000</code></pre>
@@ -316,6 +327,7 @@ EMPTY_CHANNEL_DESTROY_MS=60000</code></pre>
                 <tr><td><code>ALLOWED_ROLES</code></td><td>—</td><td>Comma-separated role IDs to restrict access</td></tr>
                 <tr><td><code>DEFAULT_SEARCH_PLATFORM</code></td><td><code>ytmsearch</code></td><td>Default search platform</td></tr>
                 <tr><td><code>LAVALINK_PASSWORD</code></td><td><code>youshallnotpass</code></td><td>Lavalink server password</td></tr>
+                <tr><td><code>POT_REFRESH_INTERVAL</code></td><td><code>1800</code></td><td>YouTube poToken refresh cadence in seconds (self-hosted stack only)</td></tr>
                 <tr><td><code>QUEUE_EMPTY_DESTROY_MS</code></td><td><code>30000</code></td><td>Disconnect after queue empties (ms)</td></tr>
                 <tr><td><code>EMPTY_CHANNEL_DESTROY_MS</code></td><td><code>60000</code></td><td>Disconnect from empty channel (ms)</td></tr>
               </tbody>
@@ -340,10 +352,21 @@ docker compose up -d</code></pre>
           </div>
         </div>
 
-        <!-- Managing -->
+        <!-- YouTube poToken Auto-Refresh -->
         <div class="guide__block fade-in">
           <h3 class="guide__heading">
             <span class="guide__heading-number">6</span>
+            YouTube poToken Auto-Refresh
+          </h3>
+          <p class="guide__text">The self-hosted stack ships two extra services: <code>bgutil-provider</code> mints a YouTube <strong>poToken</strong> on your server's own IP, and <code>pot-refresher</code> pushes it to Lavalink's hot-swap route every 30 minutes. This keeps non-music videos and autoplay mixes playable. No Google account, no API key, no manual token pasting.</p>
+          <p class="guide__text">Download <a href="https://github.com/albertgmz/BeatDock/blob/main/scripts/pot-refresher.sh" target="_blank" rel="noopener"><code>scripts/pot-refresher.sh</code></a> into a <code>scripts/</code> folder next to your <code>docker-compose.yml</code>, and tune the cadence with <code>POT_REFRESH_INTERVAL</code> (seconds, default <code>1800</code>). Music keeps playing even if the refresher is temporarily down.</p>
+          <p class="guide__text guide__text--muted">Self-hosted Lavalink only. If BeatDock runs on public Lavalink nodes, tokens are handled by the node operator and this doesn't apply.</p>
+        </div>
+
+        <!-- Managing -->
+        <div class="guide__block fade-in">
+          <h3 class="guide__heading">
+            <span class="guide__heading-number">7</span>
             Managing the Bot
           </h3>
           <div class="guide__code">
