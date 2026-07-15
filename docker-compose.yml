@@ -58,6 +58,50 @@ services:
       retries: 5
       start_period: 30s
 
+  # Mints a YouTube poToken (credential-free, same egress IP as Lavalink). Internal-only.
+  bgutil-provider:
+    container_name: beatdock-bgutil
+    image: brainicism/bgutil-ytdlp-pot-provider:1.3.1
+    init: true
+    networks:
+      - beatdock-network
+    restart: unless-stopped
+    mem_limit: 384m
+    pids_limit: 256
+    cpus: "1.0"
+    logging: *default-logging
+
+  # Loops: mint {poToken, visitorData} from bgutil -> push to Lavalink's POST /youtube
+  # hot-swap route (no restart). Restores non-music videos + autoplay/RD mixes on the WEB client.
+  pot-refresher:
+    container_name: beatdock-pot-refresher
+    image: alpine:3
+    init: true
+    depends_on:
+      lavalink:
+        condition: service_healthy
+      bgutil-provider:
+        condition: service_started
+    networks:
+      - beatdock-network
+    volumes:
+      # Long syntax: fail loudly if the script is missing instead of creating a junk dir.
+      - type: bind
+        source: ./scripts/pot-refresher.sh
+        target: /pot-refresher.sh
+        read_only: true
+        bind:
+          create_host_path: false
+    environment:
+      - LAVALINK_PASSWORD=${LAVALINK_PASSWORD:-youshallnotpass}
+      - POT_REFRESH_INTERVAL=${POT_REFRESH_INTERVAL:-1800}
+    command: sh -c "apk add --no-cache curl jq >/dev/null && exec sh /pot-refresher.sh"
+    restart: unless-stopped
+    mem_limit: 64m
+    pids_limit: 64
+    cpus: "0.5"
+    logging: *default-logging
+
 networks:
   beatdock-network:
     name: beatdock_network

@@ -4,6 +4,26 @@ All notable changes to BeatDock are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/). This project uses [Semantic Versioning](https://semver.org/).
 
+## [2.10.0] - 2026-07-06
+
+### Added
+- Automated, credential-free YouTube **poToken** refresh for the self-hosted Docker stack.
+  Two new services — `bgutil-provider` (mints the token on the host's own IP) and
+  `pot-refresher` (pushes it to Lavalink's `POST /youtube` hot-swap route every
+  `POT_REFRESH_INTERVAL` seconds) — restore playback of non-music videos and autoplay/RD-mix
+  recommendations without any Google account, API key, or manual token pasting
+- `POT_REFRESH_INTERVAL` environment variable to tune the refresh cadence (default: 1800s)
+
+### Changed
+- Lavalink `youtube` clients are now `MUSIC, WEB, WEBEMBEDDED, ANDROID_VR`. The `WEB` client
+  (backed by the auto-refreshed poToken) handles arbitrary videos and RD mixes; dropped
+  `TVHTML5_SIMPLY`, which triggered YouTube's "Sign in to confirm you're not a bot" detection
+
+### Fixed
+- Non-music videos (film/movie clips) that failed with "This video is not available" now play
+- Autoplay no longer silently stops on tracks whose RD mix only `ANDROID_VR` could not resolve
+  ("Could not find tracks from mix")
+
 ## [2.9.0] - 2026-06-07
 
 ### Changed

@@ -13,9 +13,10 @@ plugins:
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
     clients:
-      - MUSIC
-      - ANDROID_VR
-      - TVHTML5_SIMPLY
+      - MUSIC          # ytmsearch / music catalog
+      - WEB            # arbitrary videos + RD mixes (needs poToken, pushed by pot-refresher)
+      - WEBEMBEDDED    # embed / age-limited fallback (also uses poToken)
+      - ANDROID_VR     # credential-free safety net if the poToken is momentarily unavailable
   lavasrc:
     providers:
       - "ytsearch:\"%ISRC%\""
