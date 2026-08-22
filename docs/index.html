@@ -57,7 +57,7 @@
         </a>
       </div>
       <div class="hero__badges">
-        <span class="badge">v2.10.0</span>
+        <span class="badge">v2.11.0</span>
         <span class="badge">Apache-2.0</span>
         <span class="badge">Docker Ready</span>
       </div>
@@ -377,7 +377,8 @@ docker compose up -d</code></pre>
 docker compose restart          # Restart
 docker compose down             # Stop
 docker compose pull && \
-  docker compose up -d          # Update to latest</code></pre>
+  docker compose up -d \
+  --force-recreate              # Update to latest</code></pre>
           </div>
           <p class="guide__text guide__text--muted">No self-hosted Lavalink? No problem — leave the Lavalink variables commented out and BeatDock will automatically connect to free public servers.</p>
         </div>

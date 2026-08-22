@@ -81,8 +81,6 @@ services:
   lavalink:
     container_name: beatdock-lavalink
     image: ghcr.io/lavalink-devs/lavalink:4
-    ports:
-      - "2333:2333"
     networks:
       - beatdock-network
     volumes:
@@ -102,7 +100,7 @@ services:
   # Mints the YouTube poToken on your own IP (credential-free). See "YouTube poToken auto-refresh".
   bgutil-provider:
     container_name: beatdock-bgutil
-    image: brainicism/bgutil-ytdlp-pot-provider:1.3.1
+    image: brainicism/bgutil-ytdlp-pot-provider:1.3.2
     init: true
     networks:
       - beatdock-network
@@ -152,14 +150,15 @@ plugins:
     allowDirectPlaylistIds: true
     clients:
       - MUSIC
+      - IOS
       - WEB
       - WEBEMBEDDED
       - ANDROID_VR
 
 lavalink:
   plugins:
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.1"
-      snapshot: false
+    - dependency: "dev.lavalink.youtube:youtube-plugin:f45bbb7aebfcbc1c553769e04af6cd43afa8b7c3"
+      snapshot: true
   server:
     password: "${LAVALINK_PASSWORD:youshallnotpass}"
     sources:
@@ -285,10 +284,53 @@ All configuration is done through the `.env` file. Only `TOKEN` is required.
 docker compose logs -f                              # View logs
 docker compose restart                              # Restart
 docker compose down                                 # Stop
-docker compose pull && docker compose up -d          # Update
+docker compose pull && docker compose up -d --force-recreate   # Update
 ```
 
+`--force-recreate` is required, not optional: `application.yml` is bind-mounted as a single
+file, and Docker binds single files by inode. `docker compose restart` reuses the container,
+and a plain `docker compose up -d` only recreates services whose image or compose config
+changed - so neither picks up an edited `application.yml`, and Lavalink keeps serving the old
+one indefinitely.
+
+On **Portainer**, use **Pull and redeploy** with **Re-pull image and redeploy** enabled; that
+is the only stack action that recreates every container and remounts the bind against the
+freshly cloned repository. If you use GitOps auto-updates, enable **Force redeployment** too,
+otherwise config-only changes will never reach the container.
+
 ## Troubleshooting
+
+### All YouTube tracks fail to play
+
+YouTube periodically blocks the clients Lavalink uses. Check which clients loaded and whether
+they are being blocked:
+
+```bash
+docker compose logs lavalink | grep -i "YouTube source initialised with clients"
+docker compose logs lavalink | grep -iE "AllClientsFailedException|Sign in to confirm|requires login"
+```
+
+If the client list does not match [`application.yml`](application.yml), the container is still
+running an old config - recreate it (see [Managing the Bot](#managing-the-bot)):
+
+```bash
+docker compose up -d --force-recreate lavalink
+```
+
+Note that `MUSIC` initialises under the name `WEB_REMIX`; that is expected, not drift.
+
+To keep the bot usable while waiting on an upstream fix, switch the default source to
+SoundCloud in `.env` and restart the bot:
+
+```env
+DEFAULT_SEARCH_PLATFORM=scsearch
+```
+
+```bash
+docker compose restart bot
+```
+
+Autoplay is YouTube-only and stays idle while SoundCloud is the default source.
 
 ### Audio not working on Raspberry Pi
 

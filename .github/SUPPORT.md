@@ -12,7 +12,7 @@ Need help with BeatDock? Here's where to go.
 
 1. Check the [README](../README.md), especially the Configuration and Troubleshooting sections.
 2. Search [existing issues](https://github.com/albertgmz/BeatDock/issues) to see if it's already been reported.
-3. Make sure you're on the latest version (`docker compose pull && docker compose up -d`).
+3. Make sure you're on the latest version (`docker compose pull && docker compose up -d --force-recreate`).
 
 ## Security vulnerabilities
 

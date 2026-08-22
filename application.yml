@@ -13,7 +13,10 @@ plugins:
     allowDirectVideoIds: true
     allowDirectPlaylistIds: true
     clients:
-      - MUSIC          # ytmsearch / music catalog
+      # Order is load-bearing: youtube-source walks this list until a client succeeds.
+      # MUSIC never serves a stream (metadata only), so IOS is the first playback-capable one.
+      - MUSIC          # ytmsearch / music catalog — metadata only
+      - IOS            # primary stream provider; needs no poToken (requires the snapshot pin below)
       - WEB            # arbitrary videos + RD mixes (needs poToken, pushed by pot-refresher)
       - WEBEMBEDDED    # embed / age-limited fallback (also uses poToken)
       - ANDROID_VR     # credential-free safety net if the poToken is momentarily unavailable
@@ -36,8 +39,13 @@ plugins:
 
 lavalink:
   plugins:
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.18.1"
-      snapshot: false
+    # TEMPORARY pin: no release has the IOS client fixes yet, and without them YouTube plays
+    # nothing. Bare commit hash, no "-SNAPSHOT" suffix - Lavalink builds the jar URL literally.
+    # If tracks repeat or restart, drop back to 34ee4c5f6b4608c19880ff62f80540c0048f537e.
+    # Revert to a release once one carries them, and keep EXPECTED_PLUGINS in
+    # src/utils/nodePluginCheck.js in sync: https://github.com/lavalink-devs/youtube-source/releases
+    - dependency: "dev.lavalink.youtube:youtube-plugin:f45bbb7aebfcbc1c553769e04af6cd43afa8b7c3"
+      snapshot: true
     - dependency: "com.github.topi314.lavasrc:lavasrc-plugin:4.8.1"
       repository: "https://maven.lavalink.dev/releases"
       snapshot: false
