@@ -75,6 +75,8 @@
     "LAVALINK_RECONNECTING": "⚠️ Müzik sunucusu bağlantısı kesildi. Yeniden bağlanılıyor, lütfen bekleyin...",
     "LAVALINK_PUBLIC_NODE_SWITCH": "🔄 Farklı bir müzik sunucusuna geçiliyor...",
     "GENERIC_ERROR": "❌ Müzik çalmaya çalışırken bir hata oluştu. Lütfen tekrar deneyin.",
+    "TRACK_UNPLAYABLE": "⚠️ **{0}** çalınamadı.",
+    "PLAYBACK_UNAVAILABLE": "❌ Çalma sürekli başarısız oluyor - müzik kaynağı geçici olarak kullanılamıyor. Kuyruk durduruluyor ve otomatik çalma kapatılıyor.",
     "ABOUT_TITLE": "BeatDock Hakkında",
     "ABOUT_DESCRIPTION": "BeatDock, yüksek kaliteli ses çalma ve kolay kendi kendine barındırma için tasarlanmış modern, açık kaynaklı bir Discord müzik botudur.",
     "PLAYER_REQUESTED_BY": "👤 Ekleyen",

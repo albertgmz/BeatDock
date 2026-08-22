@@ -127,6 +127,25 @@ class PlayerController {
         return message;
     }
 
+    // Single place to talk to the channel a guild's player lives in. Falls back to the
+    // player's own textChannelId so failure notices still land after the player embed is gone.
+    async sendToPlayerChannel(guildId, content) {
+        try {
+            const channelId = this.playerMessages.get(guildId)?.channelId
+                ?? this.client.lavalink.getPlayer(guildId)?.textChannelId;
+            if (!channelId) return;
+
+            const channel = this.client.channels.cache.get(channelId);
+            if (!channel) return;
+
+            // Mentions are suppressed because some of these messages interpolate a track
+            // title, and with autoplay that title can come from a track nobody chose.
+            await channel.send({ content, allowedMentions: { parse: [] } });
+        } catch (error) {
+            logger.debug('Failed to send player channel message:', error?.message || error);
+        }
+    }
+
     async updatePlayer(guildId) {
         const player = this.client.lavalink.getPlayer(guildId);
         if (!player || !player.queue.current) return;

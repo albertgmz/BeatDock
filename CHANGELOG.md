@@ -4,6 +4,42 @@ All notable changes to BeatDock are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/). This project uses [Semantic Versioning](https://semver.org/).
 
+## [2.11.0] - 2026-08-21
+
+### Fixed
+- YouTube playback failing with "All clients failed to load the item" (`This video requires
+  login` / `Sign in to confirm you're not a bot`). Two causes: YouTube has blocked every client
+  the plugin could still reach anonymously, and stacks updated in place were never picking up
+  the 2.10.0 config at all - `application.yml` is bind-mounted as a single file, and Docker
+  binds single files by inode, so `docker compose restart` and a plain `docker compose up -d`
+  both keep serving the pre-update file indefinitely
+- Documented update command now uses `--force-recreate`, and the Portainer equivalent
+  ("Pull and redeploy" with "Re-pull image and redeploy") is spelled out. A `docker:update`
+  npm script wraps the correct invocation
+- A queue that ends on a track that could not be played no longer reports that it "finished"
+- README's example `docker-compose.yml` no longer publishes Lavalink's port `2333` to the host,
+  matching the real compose file. The example previously exposed the control API - including the
+  poToken hot-swap route - with a default password
+
+### Changed
+- Lavalink `youtube-plugin` pinned to upstream snapshot `f45bbb7a`, which carries the `IOS`
+  client fixes absent from release 1.18.2. `IOS` is now the primary stream provider and needs no
+  poToken; `WEB`/`WEBEMBEDDED`/`ANDROID_VR` stay in the list so playback self-heals when they are
+  unblocked. Revert to a release pin once one ships these fixes. Note that `IOS` serves no Opus
+  formats, so Lavalink now transcodes AAC to Opus for tracks it handles - a small but real CPU
+  cost on constrained hosts such as a Raspberry Pi
+- `bgutil-ytdlp-pot-provider` bumped to `1.3.2`, which mints WebPO tokens from the homepage
+  challenge to work around the 403s in the same YouTube change
+- `trackStuck` now feeds the same failure handling as `trackError` instead of only logging
+
+### Added
+- Playback failure breaker: after 3 consecutive failures in a guild the bot says so once in the
+  channel, stops the queue and turns off autoplay, instead of silently skipping every track and
+  letting autoplay refill the queue from the same dead source
+- Startup warning when the Lavalink node's loaded plugin versions do not match the ones this
+  release pins, with the command to recreate the container
+- `scripts/test-resilience.js`, and CI now runs `npm test`
+
 ## [2.10.0] - 2026-07-06
 
 ### Added

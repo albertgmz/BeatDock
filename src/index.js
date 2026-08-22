@@ -16,6 +16,14 @@ const {
     clearGuildLifecycleTimers,
     schedulePlayerUpdate,
 } = require('./utils/playerLifecycle');
+const {
+    recordFailure,
+    recordSuccess,
+    endedOnFailure,
+    hasNotified,
+    clearGuild: clearFailureState,
+} = require('./utils/playbackFailureTracker');
+const { verifyNodePlugins } = require('./utils/nodePluginCheck');
 const loadCommands = require('./handlers/commandHandler');
 const registerEvents = require('./handlers/eventHandler');
 const logger = require('./utils/logger');
@@ -122,6 +130,7 @@ function cleanupGuildPlayer(client, guildId) {
     client.playerController.deletePlayer(guildId);
     client.activePlayers.delete(guildId);
     client.autoplayEnabled.delete(guildId);
+    clearFailureState(guildId);
     client.updatePresence();
 }
 
@@ -167,6 +176,14 @@ async function setupLavalink(client) {
 
     client.lavalink.nodeManager.on('connect', (node) => {
         client.lavalinkConnectionManager.onConnect(node);
+
+        // Every connect, not just the first: the remedy this check prints recreates Lavalink
+        // on its own, so the reconnect is precisely when the operator needs to see it again.
+        // Local nodes only - a public node's operator pins whatever they want.
+        if (mode !== 'local') return;
+        verifyNodePlugins(node).catch((error) => {
+            logger.debug('Lavalink plugin check failed:', error?.message || error);
+        });
     });
 
     client.lavalink.nodeManager.on('error', (node, error) => {
@@ -179,6 +196,36 @@ async function setupLavalink(client) {
 }
 
 function registerLavalinkEvents(client) {
+    // A systemic source outage (every YouTube client blocked, a node handing back dead streams)
+    // fails every track the instant it starts. lavalink-client then autoSkips through the whole
+    // queue behind a cheerful "Now playing", and autoplay refills it with more of the same dead
+    // source - forever. Trip once per streak: kill autoplay, stop draining, and say so.
+    const handlePlaybackFailure = async (player, track, detail) => {
+        const guildId = player.guildId;
+        const { consecutive, shouldNotify } = recordFailure(guildId);
+
+        logger.error(`Playback failed (${consecutive} in a row): ${track?.info?.title} — ${detail}`);
+        if (!shouldNotify) return;
+
+        logger.error(
+            `Playback failed ${consecutive} times in a row in guild ${guildId}; stopping playback.\n` +
+            `  - Is the source blocked?  docker compose logs lavalink | grep -iE "AllClientsFailed|Sign in to confirm"\n` +
+            `  - Is the config current?  docker compose exec lavalink cat /opt/Lavalink/application.yml`
+        );
+
+        // Breaks the autoplay half of the loop. autoSkip is a library option we do not own,
+        // so stopPlaying() below is what stops the drain - and it races the autoSkip already
+        // in flight for this track. Best effort by design: if it loses, the next failure is
+        // counted and the queue is empty within a few more skips either way.
+        client.autoplayEnabled.set(guildId, false);
+
+        // Defaults are what we want: clear the queue, and do not run autoplay on the way out.
+        await player.stopPlaying().catch((error) => {
+            logger.debug('Failed to stop player after repeated failures:', error?.message || error);
+        });
+        await client.playerController.sendToPlayerChannel(guildId, client.t('PLAYBACK_UNAVAILABLE'));
+    };
+
     client.lavalink.on("trackStart", (player, track) => {
         clearQueueEndTimeout(player.guildId);
 
@@ -209,12 +256,22 @@ function registerLavalinkEvents(client) {
                 cleanupGuildPlayer(client, player.guildId);
             }
         }, TRACK_END_CLEANUP_DELAY_MS);
+
+        if ((reason?.reason || reason) === "finished") recordSuccess(player.guildId);
     });
 
-    client.lavalink.on("queueEnd", (player) => {
+    client.lavalink.on("queueEnd", (player, track, payload) => {
         const guildId = player.guildId;
 
         clearQueueEndTimeout(guildId);
+
+        // The breaker already explains a systemic outage, so a per-track notice on top of it
+        // would just be noise.
+        const endMessage = () => {
+            if (hasNotified(guildId)) return null;
+            if (!endedOnFailure(payload)) return client.t('QUEUE_ENDED');
+            return client.t('TRACK_UNPLAYABLE', track?.info?.title || client.t('UNKNOWN_TITLE'));
+        };
 
         if (client.autoplayEnabled.get(guildId)) {
             const timeout = setTimeout(() => {
@@ -223,35 +280,36 @@ function registerLavalinkEvents(client) {
                 const currentPlayer = client.lavalink.getPlayer(guildId);
                 if (currentPlayer?.queue.current || currentPlayer?.playing) return;
 
-                const playerMessage = client.playerController.playerMessages.get(guildId);
-                if (playerMessage) {
-                    const textChannel = client.channels.cache.get(playerMessage.channelId);
-                    if (textChannel) {
-                        textChannel.send(client.t('QUEUE_ENDED')).catch(() => {});
-                    }
-                }
+                const message = endMessage();
+                if (message) client.playerController.sendToPlayerChannel(guildId, message);
                 cleanupGuildPlayer(client, guildId);
             }, AUTOPLAY_TIMEOUT_MS);
             setQueueEndTimeout(guildId, timeout);
             return;
         }
 
-        const playerMessage = client.playerController.playerMessages.get(guildId);
-        if (playerMessage) {
-            const textChannel = client.channels.cache.get(playerMessage.channelId);
-            if (textChannel) {
-                textChannel.send(client.t('QUEUE_ENDED')).catch(() => {});
-            }
-        }
+        const message = endMessage();
+        if (message) client.playerController.sendToPlayerChannel(guildId, message);
         cleanupGuildPlayer(client, guildId);
     });
 
     client.lavalink.on("trackStuck", (player, track, payload) => {
-        logger.warn(`Track stuck: ${track?.info?.title} (threshold: ${payload.thresholdMs}ms)`);
+        handlePlaybackFailure(player, track, `stuck for ${payload.thresholdMs}ms`).catch(() => {});
     });
 
     client.lavalink.on("trackError", (player, track, payload) => {
-        logger.error(`Track error: ${track?.info?.title} — ${payload.exception?.message || payload.error || 'Unknown error'}`);
+        handlePlaybackFailure(
+            player,
+            track,
+            // Resolve failures arrive as a raw Error rather than a Lavalink exception payload.
+            payload.exception?.message || payload.error || payload.message || 'Unknown error'
+        ).catch(() => {});
+    });
+
+    // /stop, /clear, an empty channel and a kick all destroy the player without ever reaching
+    // cleanupGuildPlayer, so this is the only place that catches every teardown path.
+    client.lavalink.on("playerDestroy", (player) => {
+        clearFailureState(player.guildId);
     });
 }
 

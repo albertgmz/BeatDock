@@ -75,6 +75,8 @@
     "LAVALINK_RECONNECTING": "⚠️ Music server connection lost. Reconnecting, please wait...",
     "LAVALINK_PUBLIC_NODE_SWITCH": "🔄 Switching to a different music server...",
     "GENERIC_ERROR": "❌ An error occurred while trying to play music. Please try again.",
+    "TRACK_UNPLAYABLE": "⚠️ Couldn't play **{0}**.",
+    "PLAYBACK_UNAVAILABLE": "❌ Playback keeps failing - the music source is temporarily unavailable. Stopping the queue and turning off autoplay.",
     "ABOUT_TITLE": "About BeatDock",
     "ABOUT_DESCRIPTION": "BeatDock is a modern, open-source Discord music bot designed for high-quality audio playback and easy self-hosting.",
     "PLAYER_REQUESTED_BY": "👤 Added by",

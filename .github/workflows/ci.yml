@@ -29,5 +29,8 @@ jobs:
       - name: Check syntax
         run: find src -name '*.js' -exec node --check {} +
 
+      - name: Run tests
+        run: npm test
+
       - name: npm audit (production)
         run: npm audit --omit=dev --audit-level=high

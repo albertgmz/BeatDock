@@ -75,6 +75,8 @@
     "LAVALINK_RECONNECTING": "⚠️ Se perdió la conexión con el servidor de música. Reconectando, por favor espera...",
     "LAVALINK_PUBLIC_NODE_SWITCH": "🔄 Cambiando a un servidor de música diferente...",
     "GENERIC_ERROR": "❌ Ocurrió un error al intentar reproducir música. Por favor, inténtalo de nuevo.",
+    "TRACK_UNPLAYABLE": "⚠️ No se pudo reproducir **{0}**.",
+    "PLAYBACK_UNAVAILABLE": "❌ La reproducción sigue fallando - la fuente de música no está disponible temporalmente. Deteniendo la cola y desactivando la reproducción automática.",
     "ABOUT_TITLE": "Acerca de BeatDock",
     "ABOUT_DESCRIPTION": "BeatDock es un bot de música para Discord moderno y de código abierto, diseñado para audio de alta calidad y fácil auto-alojamiento.",
     "PLAYER_REQUESTED_BY": "👤 Añadido por",
