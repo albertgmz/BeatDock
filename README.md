@@ -332,6 +332,57 @@ docker compose restart bot
 
 Autoplay is YouTube-only and stays idle while SoundCloud is the default source.
 
+### A video plays an English AI dub instead of its original audio
+
+YouTube attaches auto-dubbed audio tracks to some spoken videos (podcasts, vlogs, Shorts) and
+marks the track in the requester's language as the default. Lavalink's `youtube-plugin` sends no
+language, so YouTube picks English, and the plugin only ever plays the default track. Music is
+not affected. The bug is upstream, in `youtube-plugin`; until a fix is released there, you can
+run a patched build. See [#160](https://github.com/albertgmz/BeatDock/issues/160) for the root
+cause and the patch, which makes the plugin prefer the track YouTube labels "original".
+
+1. Build the patched plugin with JDK 17 or 21 (the project's Gradle 8.10 does not run on newer
+   JDKs). Save the diff
+   from #160 as `dub.patch`, then:
+
+   ```bash
+   git clone https://github.com/lavalink-devs/youtube-source.git
+   cd youtube-source
+   git checkout f45bbb7aebfcbc1c553769e04af6cd43afa8b7c3
+   git apply ../dub.patch
+   ./gradlew :plugin:jar
+   ```
+
+   Leave the patch uncommitted: the jar then reports the pinned version, and the startup plugin
+   check stays quiet.
+
+2. Put `plugin/build/libs/youtube-plugin-f45bbb7aebfcbc1c553769e04af6cd43afa8b7c3.jar` in a
+   `lavalink-plugins/` folder next to `docker-compose.yml`, together with the stock
+   [`lavasrc-plugin-4.8.1.jar`](https://maven.lavalink.dev/releases/com/github/topi314/lavasrc/lavasrc-plugin/4.8.1/lavasrc-plugin-4.8.1.jar)
+   (SHA-1 `f60d5c01da5b91bf1028c3d5e1a665c24f2ebfc6`). The folder and jars must be readable by
+   the container's non-root user (default `755`/`644` permissions are fine).
+
+3. In `application.yml`, delete the whole `lavalink.plugins:` block so Lavalink uses the jars in
+   the folder as they are. Otherwise, when a later BeatDock release bumps the pin, Lavalink tries
+   to replace the patched jar: on the read-only mount below it fails to start.
+
+4. Mount the whole folder, read-only, on the `lavalink` service. With the plugins block gone,
+   Lavalink downloads nothing, so `lavasrc` has to be in the folder too.
+
+   ```yaml
+       volumes:
+         - ./application.yml:/opt/Lavalink/application.yml:ro
+         - ./lavalink-plugins:/opt/Lavalink/plugins:ro
+   ```
+
+5. Recreate Lavalink (see [Managing the Bot](#managing-the-bot)). On Portainer, use an absolute
+   host path for the plugins folder instead of `./lavalink-plugins`. If the stack deploys from
+   this repository, make the edits from steps 3 and 4 in a fork and deploy from that, since
+   **Pull and redeploy** replaces local edits with the repository's files.
+
+Undo these steps once a `youtube-plugin` release carries the fix, since the manual setup also
+opts you out of the plugin pins that future BeatDock releases ship.
+
 ### Audio not working on Raspberry Pi
 
 Raspberry Pi 5 (Debian 13) may use a 16KB memory page size, which is incompatible with Lavalink's DAVE encryption library. Check with:
