@@ -4,7 +4,7 @@ All notable changes to BeatDock are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/). This project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [2.11.1] - 2026-09-26
 
 ### Changed
 - `lavalink-client` bumped to `2.11.0` and `discord.js` to `14.27.0`, which also brings `ws` to
