@@ -4,6 +4,18 @@ All notable changes to BeatDock are documented in this file.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/). This project uses [Semantic Versioning](https://semver.org/).
 
+## [2.11.1] - 2026-09-26
+
+### Changed
+- `lavalink-client` bumped to `2.11.0` and `discord.js` to `14.27.0`, which also brings `ws` to
+  `8.21.3` (fixes a remote memory-exhaustion DoS and an uninitialized-memory disclosure)
+- CI: `actions/checkout` `6.0.3`, `docker/metadata-action` `6.1.0`
+
+### Added
+- Troubleshooting entry for videos that play an English AI dub instead of their original audio,
+  with a workaround until `youtube-plugin` fixes it upstream
+  ([#160](https://github.com/albertgmz/BeatDock/issues/160))
+
 ## [2.11.0] - 2026-08-21
 
 ### Fixed

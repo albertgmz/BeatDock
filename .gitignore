@@ -161,3 +161,4 @@ cypress/screenshots/
 # yarn.lock
 # pnpm-lock.yaml
 /.claude
+/CLAUDE.md
