@@ -40,7 +40,7 @@
   },
   "dependencies": {
     "discord.js": "^14.27.0",
-    "dotenv": "^17.4.2",
+    "dotenv": "^18.0.1",
     "lavalink-client": "^2.11.0",
     "picocolors": "^1.1.1"
   }
